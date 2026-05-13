@@ -1,4 +1,4 @@
- :root {
+:root {
     --bg-color: #0f172a;
     --card-bg: #1e293b;
     --accent-color: #38bdf8;
@@ -56,10 +56,28 @@ p { font-size: 1.5rem; line-height: 1.6; max-width: 1000px; text-align: center; 
 .highlight { color: var(--accent-color); font-weight: bold; }
 
 /* 컨트롤 버튼 */
+
+.backtomain {
+    position: fixed; 
+    bottom: 30px; 
+    left: 30px;
+    z-index: 100;
+}
+
+.backtomain .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    height: 40px; /* '이전/다음' 버튼과 높이 맞춤 */
+    box-sizing: border-box;
+}
+
 .controls {
     position: fixed; bottom: 30px; right: 30px;
     display: flex; gap: 10px; z-index: 100;
 }
+
 .btn {
     background: var(--card-bg);
     color: white; border: 1px solid var(--accent-color);
