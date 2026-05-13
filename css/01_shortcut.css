@@ -1,0 +1,157 @@
+ :root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --accent-color: #38bdf8;
+    --text-color: #f8fafc;
+}
+body, html {
+    margin: 0; padding: 0;
+    font-family: 'Pretendard', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow: hidden; /* 스크롤바 제거 */
+}
+.container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+section {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    box-sizing: border-box;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease-in-out;
+}
+section.active {
+    opacity: 1;
+    visibility: visible;
+}
+.slide-number {
+    position: absolute; top: 20px; right: 30px;
+    font-size: 1rem; color: var(--accent-color);
+}
+h1 { font-size: 3.5rem; margin-bottom: 20px; color: var(--accent-color); text-align: center; }
+h2 { font-size: 2.5rem; margin-bottom: 30px; border-left: 5px solid var(--accent-color); padding-left: 15px; }
+p { font-size: 1.5rem; line-height: 1.6; max-width: 1000px; text-align: center; color: #cbd5e1; }
+
+/* 키보드 키 디자인 */
+.key-container { display: flex; gap: 15px; margin-top: 30px; }
+.key {
+    background: linear-gradient(145deg, #334155, #1e293b);
+    border: 2px solid #475569;
+    border-radius: 10px;
+    padding: 20px 30px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 0 #0f172a;
+}
+.highlight { color: var(--accent-color); font-weight: bold; }
+
+/* 컨트롤 버튼 */
+.controls {
+    position: fixed; bottom: 30px; right: 30px;
+    display: flex; gap: 10px; z-index: 100;
+}
+.btn {
+    background: var(--card-bg);
+    color: white; border: 1px solid var(--accent-color);
+    padding: 10px 20px; cursor: pointer; border-radius: 5px;
+    transition: 0.3s;
+}
+.btn:hover { background: var(--accent-color); color: var(--bg-color); }
+
+.hint {
+    position: fixed; bottom: 30px; left: 30px;
+    font-size: 0.8rem; color: #64748b;
+}
+
+.hover-target {
+    position: relative;            cursor: pointer;
+}
+
+.hover-image {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 650px;
+    border-radius: 10px;
+    box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.hover-target:hover .hover-image {
+    display: block;
+}
+
+.vibrate-emoji {
+  display: inline-block;
+  animation: vibrate 0.3s infinite;
+}
+
+@keyframes vibrate {
+    0% { transform: translate(0); }
+    20% { transform: translate(-1px, 0px); }
+    40% { transform: translate(1px, 0px); }
+    60% { transform: translate(-1px, 0px); }
+    80% { transform: translate(1px, 0px); }
+    100% { transform: translate(0); }
+}
+
+.shake-emoji {
+  display: inline-block;
+  animation: tilt-shake 2.0s infinite;
+}
+
+@keyframes tilt-shake {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    10%  { transform: translate(-3px, -1px) rotate(-2deg); }
+    20%  { transform: translate(2px, 1px) rotate(3deg); }
+    30%  { transform: translate(-1px, 3px) rotate(-1deg); }
+    40%  { transform: translate(3px, -2px) rotate(2deg); }
+    50%  { transform: translate(-2px, -3px) rotate(-3deg); }
+    60%  { transform: translate(1px, 2px) rotate(1deg); }
+    70%  { transform: translate(-3px, 1px) rotate(-2deg); }
+    80%  { transform: translate(2px, -1px) rotate(3deg); }
+    90%  { transform: translate(-1px, -2px) rotate(-1deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.pulse-emoji {
+  display: inline-block;
+  animation: pulse 0.6s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.curtain-reveal {
+    clip-path: inset(0 100% 0 0);
+    display: inline-block;
+}
+
+section.active .curtain-reveal {
+    animation: curtain-open 2s forwards;
+    animation-delay: 1.0s;
+}
+
+@keyframes curtain-open {
+    from{
+        clip-path: inset(0 100% 0 0);
+    }
+    to{
+        clip-path: inset(0 -5% 0 0);
+    }
+}
