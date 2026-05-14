@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pig Run - Wolf Chase</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #222; font-family: 'Malgun Gothic', sans-serif; }
+        canvas { display: block; background: #7cfc00; border-bottom: 10px solid #556b2f; }
+        
+        #ui { position: absolute; top: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px #000; pointer-events: none; }
+        
+        /* 스테미나 바 스타일 */
+        .stamina-container { width: 250px; height: 25px; background: rgba(0,0,0,0.5); border: 2px solid white; margin-top: 10px; position: relative; }
+        #staminaBar { width: 100%; height: 100%; background: #ffeb3b; transition: width 0.1s; }
+        #staminaText { position: absolute; width: 100%; text-align: center; top: 2px; font-size: 14px; color: black; font-weight: bold; }
+
+        .msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+               color: white; font-size: 40px; font-weight: bold; display: none; text-align: center; 
+               background: rgba(0,0,0,0.8); padding: 40px; border-radius: 20px; }
+        button { padding: 10px 20px; font-size: 20px; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>🐷 늑대를 피해라!</h1>
+        <p>클릭이나 스페이스바를 <b>연타</b>하세요!</p>
+        <h2 id="distance">거리: 0m</h2>
+        <div class="stamina-container">
+            <div id="staminaBar"></div>
+            <div id="staminaText">기력: 100%</div>
+        </div>
+    </div>
+
+    <div id="gameOver" class="msg">
+        잡혔습니다! 🍖<br>
+        <button onclick="location.reload()">다시 시작</button>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const distUI = document.getElementById('distance');
+        const overUI = document.getElementById('gameOver');
+        const staminaBar = document.getElementById('staminaBar');
+        const staminaText = document.getElementById('staminaText');
+
+        canvas.width = window.innerWidth;
+        canvas.height = 450;
+
+ 
+        const pigImg = new Image();
+        pigImg.src = 'pig.png'; // 이미지 없을 시 사각형으로 대체됨
+
+        const wolfImg = new Image();
+        wolfImg.src = 'wolf.png';
+
+        // --- 게임 설정 값 ---
+        let playerX = 300;
+        let wolfX = 0;
+        let speed = 0;
+        let isGameOver = false;
+
+        const friction = 0.95;    // 매 프레임 속도 유지 비율
+        const accel = 5;         // 클릭 1회당 가속도
+        const maxSpeed = 20;     // 돼지 최대 속도 제한
+        
+        let stamina = 100;
+        const maxStamina = 100;
+        const staminaDrain = 5;   // 클릭 시 소모량
+        const staminaRecover = 0.2; // 프레임당 회복량
+
+        const baseWolfSpeed = 4.5;
+        let currentWolfSpeed = baseWolfSpeed;
+
+        // --- 입력 처리 ---
+        function boost() {
+            if (isGameOver || stamina < staminaDrain) return;
+            speed += accel;
+            stamina -= staminaDrain;
+        }
+
+        // 마우스 클릭 (꾹 누르기 방지는 기본)
+        window.addEventListener('mousedown', boost);
+        // 터치 대응
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); boost(); }, {passive: false});
+        // 키보드 연타 (꾹 누르기 방지 처리)
+        window.addEventListener('keydown', (e) => { 
+            if(e.code === 'Space') {
+                if(e.repeat) return; // 핵심: 꾹 누르기 차단
+                boost();
+            }
+        });
+
+        function update() {
+            if (isGameOver) return;
+
+            // 1. 플레이어 물리 계산
+            speed *= friction;
+            if (speed > maxSpeed) speed = maxSpeed;
+            playerX += speed;
+
+            // 2. 스테미나 회복
+            if (stamina < maxStamina) stamina += staminaRecover;
+
+            // 3. 늑대 AI (거리가 멀어지면 분노해서 빨라짐)
+            let distanceGap = playerX - wolfX;
+            if (distanceGap > 400) {
+                currentWolfSpeed = baseWolfSpeed + (distanceGap / 80);
+            } else {
+                currentWolfSpeed = baseWolfSpeed;
+            }
+            wolfX += currentWolfSpeed;
+
+            // 4. UI 업데이트
+            let distanceMetres = Math.floor((playerX - 300) / 10);
+            distUI.innerText = `거리: ${distanceMetres}m | 늑대 속도: ${currentWolfSpeed.toFixed(1)}`;
+            
+            const staminaPercent = Math.max(0, (stamina / maxStamina) * 100);
+            staminaBar.style.width = staminaPercent + '%';
+            staminaText.innerText = `기력: ${Math.floor(staminaPercent)}%`;
+            staminaBar.style.background = stamina < 30 ? '#ff5252' : '#ffeb3b';
+
+            // 5. 게임오버 체크
+            if (wolfX >= playerX) {
+                isGameOver = true;
+                overUI.style.display = 'block';
+            }
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const screenMid = canvas.width / 2;
+            const offsetX = screenMid - playerX;
+
+            // 배경 격자 (속도감 표현)
+            ctx.strokeStyle = 'rgba(85, 107, 47, 0.5)';
+            for(let i=0; i<30; i++) {
+                let lineX = (i * 100 - (playerX % 100));
+                ctx.beginPath(); ctx.moveTo(lineX, 0); ctx.lineTo(lineX, canvas.height); ctx.stroke();
+            }
+
+            // 캐릭터 그리기 (이미지가 있으면 이미지, 없으면 사각형)
+            // 늑대
+            if (wolfImg.complete && wolfImg.src !== "") {
+                ctx.drawImage(wolfImg, wolfX + offsetX, 200, 80, 60);
+            } else {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(wolfX + offsetX, 200, 60, 40);
+                ctx.fillStyle = 'white';
+                ctx.fillText("🐺 늑대", wolfX + offsetX, 195);
+            }
+
+            // 돼지
+            if (pigImg.complete && pigImg.src !== "") {
+                ctx.drawImage(pigImg, playerX + offsetX, 200, 70, 50);
+            } else {
+                ctx.fillStyle = '#ffc0cb';
+                ctx.fillRect(playerX + offsetX, 200, 50, 40);
+                ctx.fillStyle = 'black';
+                ctx.fillText("🐷 돼지", playerX + offsetX, 195);
+            }
+        }
+
+        update();
+    </script>
+</body>
+</html>

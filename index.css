@@ -64,3 +64,30 @@ h1 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
 .card:hover .author {
     color: var(--text);
 }
+
+.section-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent), transparent);
+    margin: 60px 0 40px 0;
+    opacity: 0.3;
+}
+
+/* 소제목 스타일 */
+.mini-title {
+    font-size: 1.5rem;
+    color: var(--accent);
+    margin-bottom: 20px;
+}
+
+/* 게임 태그 색상 (보라색 계열 추천) */
+.tag.game {
+    background: #a855f7;
+    color: white;
+}
+
+/* 게임 카드에만 살짝 다른 효과 (선택사항) */
+.game-card:hover {
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+    border-color: #a855f7;
+}

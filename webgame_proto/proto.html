@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>늑대의 입바람! - Final</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #b3e5fc; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+        #ui { position: absolute; top: 20px; left: 20px; user-select: none; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 10; }
+        #timer { font-size: 24px; font-weight: bold; color: #ff5252; }
+        #msg { margin-top: 10px; font-size: 14px; color: #555; }
+        .btn-reset { margin-top: 15px; padding: 10px 20px; background: #546e7a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .btn-reset:hover { background: #37474f; }
+        #clear-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 20px; text-align: center; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 20; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="timer">00.00s</div>
+    <div id="msg">집을 모두 무너뜨리세요!</div>
+    <button class="btn-reset" onclick="resetGame()">다시 시작 (R)</button>
+</div>
+
+<div id="clear-overlay">
+    <h1 style="margin:0; color:#4caf50;">🏠 파괴 성공!</h1>
+    <p id="final-time" style="font-size: 20px;"></p>
+    <button class="btn-reset" onclick="resetGame()">한 번 더 하기</button>
+</div>
+
+<script>
+const { Engine, Render, Runner, Bodies, Composite, Vector, Body, Events } = Matter;
+
+let engine, render, runner;
+let isMouseDown = false;
+let startPos = { x: 0, y: 0 };
+let currentMouse = { x: 0, y: 0 };
+let startTime, timerInterval;
+let isCleared = false;
+let blocks = [];
+
+const wolfPos = { x: 150, y: window.innerHeight - 100 };
+
+function initGame() {
+    // 엔진 및 초기화
+    engine = Engine.create({ positionIterations: 10 });
+    render = Render.create({
+        element: document.body,
+        engine: engine,
+        options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: '#b3e5fc' }
+    });
+
+    Render.run(render);
+    runner = Runner.create();
+    Runner.run(runner, engine);
+
+    // 바닥
+    const ground = Bodies.rectangle(window.innerWidth/2, window.innerHeight - 20, window.innerWidth, 40, { isStatic: true, render: { fillStyle: '#689f38' } });
+    Composite.add(engine.world, ground);
+
+    // 늑대
+    const wolf = Bodies.rectangle(wolfPos.x, wolfPos.y, 60, 60, { isStatic: true, render: { fillStyle: '#546e7a' } });
+    Composite.add(engine.world, wolf);
+
+    // 집 생성
+    spawnHouse(window.innerWidth - 350);
+
+    // 타이머 시작
+    isCleared = false;
+    document.getElementById('clear-overlay').style.display = 'none';
+    startTime = Date.now();
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(updateTimer, 10);
+
+    // 마우스 이벤트 등록 (중복 등록 방지 위해 initGame 밖에서 처리해도 되지만 편의상 여기 포함)
+    setupEvents();
+}
+
+function spawnHouse(startX) {
+    const startY = window.innerHeight - 40;
+    const blockW = 30;
+    const blockH = 60;
+    const roofW = 140;
+    const roofH = 20;
+    blocks = [];
+
+    for (let i = 0; i < 5; i++) { 
+        const yPos = startY - (i * (blockH + roofH)) - blockH/2;
+        const options = { friction: 1, density: 0.01, label: 'house_block' };
+        
+        const b1 = Bodies.rectangle(startX, yPos, blockW, blockH, options);
+        const b2 = Bodies.rectangle(startX + 80, yPos, blockW, blockH, options);
+        const roof = Bodies.rectangle(startX + 40, yPos - blockH/2 - roofH/2, roofW, roofH, options);
+        
+        blocks.push(b1, b2, roof);
+        Composite.add(engine.world, [b1, b2, roof]);
+    }
+}
+
+function updateTimer() {
+    if (isCleared) return;
+    const elapsed = (Date.now() - startTime) / 1000;
+    document.getElementById('timer').innerText = elapsed.toFixed(2) + "s";
+
+    // 클리어 판정: 가장 높이 있던 블록이 일정 높이 이하로 떨어졌는지 확인
+    const topBlock = blocks[blocks.length - 1];
+    if (topBlock.position.y > window.innerHeight - 100) {
+        gameClear(elapsed);
+    }
+}
+
+function gameClear(time) {
+    isCleared = true;
+    clearInterval(timerInterval);
+    document.getElementById('clear-overlay').style.display = 'block';
+    document.getElementById('final-time').innerText = `기록: ${time.toFixed(2)}초`;
+}
+
+function resetGame() {
+    // 기존 물리 객체 전부 삭제 및 엔진 중지
+    Render.stop(render);
+    Runner.stop(runner);
+    engine.events = {};
+    render.canvas.remove();
+    render.canvas = null;
+    render.context = null;
+    render.textures = {};
+    
+    initGame();
+}
+
+function setupEvents() {
+    // 조준선 렌더링 이벤트
+    Events.on(render, 'afterRender', () => {
+        if (isMouseDown && !isCleared) {
+            const ctx = render.context;
+            const angle = Math.atan2(currentMouse.y - startPos.y, currentMouse.x - startPos.x);
+            const lineStart = { x: wolfPos.x + 50, y: wolfPos.y - 10 };
+            const lineLength = Vector.magnitude(Vector.sub(currentMouse, startPos));
+            
+            ctx.beginPath();
+            ctx.moveTo(lineStart.x, lineStart.y);
+            ctx.lineTo(lineStart.x + Math.cos(angle) * lineLength, lineStart.y + Math.sin(angle) * lineLength);
+            ctx.strokeStyle = '#00a0e9';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    });
+}
+
+// 키보드 R 누르면 리셋
+window.addEventListener('keydown', (e) => { if(e.key === 'r' || e.key === 'R') resetGame(); });
+
+// 마우스 리스너 (최초 1회만 등록)
+window.addEventListener('mousedown', (e) => { isMouseDown = true; startPos = { x: e.clientX, y: e.clientY }; currentMouse = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('mousemove', (e) => { currentMouse = { x: e.clientX, y: e.clientY }; });
+window.addEventListener('mouseup', (e) => {
+    if (!isMouseDown || isCleared) return;
+    isMouseDown = false;
+    const endPos = { x: e.clientX, y: e.clientY };
+    const angle = Math.atan2(endPos.y - startPos.y, endPos.x - startPos.x);
+    const distance = Vector.magnitude(Vector.sub(endPos, startPos));
+    const force = Math.min(distance * 0.075, 50);
+    if (distance < 15) return;
+
+    for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+            const wind = Bodies.circle(wolfPos.x + 50, wolfPos.y - 10, 12, { restitution: 0.5, frictionAir: 0.02, render: { fillStyle: '#81d4fa' } });
+            Body.setVelocity(wind, { x: Math.cos(angle) * force, y: Math.sin(angle) * force });
+            Composite.add(engine.world, wind);
+            setTimeout(() => Composite.remove(engine.world, wind), 1500);
+        }, i * 40);
+    }
+});
+
+// 시작!
+initGame();
+</script>
+</body>
+</html>
