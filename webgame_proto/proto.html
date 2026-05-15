@@ -12,9 +12,37 @@
         .btn-reset { margin-top: 15px; padding: 10px 20px; background: #546e7a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
         .btn-reset:hover { background: #37474f; }
         #clear-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 20px; text-align: center; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 20; }
+        canvas { touch-action: none;}
+
+        /* 기본적으로 숨김 */
+        #rotate-notice {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        /* 세로 모드(Portrait)일 때만 표시 */
+        @media screen and (orientation: portrait) {
+            #rotate-notice {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
+
+<div id="rotate-notice">
+    <div class="content">
+        <p>🔄 더 즐거운 게임을 위해<br>화면을 가로로 돌려주세요!</p>
+    </div>
+</div>
 
 <div id="ui">
     <div id="timer">00.00s</div>
@@ -117,7 +145,6 @@ function gameClear(time) {
 }
 
 function resetGame() {
-    // 기존 물리 객체 전부 삭제 및 엔진 중지
     Render.stop(render);
     Runner.stop(runner);
     engine.events = {};
@@ -164,6 +191,53 @@ window.addEventListener('mouseup', (e) => {
     const distance = Vector.magnitude(Vector.sub(endPos, startPos));
     const force = Math.min(distance * 0.075, 50);
     if (distance < 15) return;
+    for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+            const wind = Bodies.circle(wolfPos.x + 50, wolfPos.y - 10, 12, { restitution: 0.5, frictionAir: 0.02, render: { fillStyle: '#81d4fa' } });
+            Body.setVelocity(wind, { x: Math.cos(angle) * force, y: Math.sin(angle) * force });
+            Composite.add(engine.world, wind);
+            setTimeout(() => Composite.remove(engine.world, wind), 1500);
+        }, i * 40);
+    }
+
+    window.addEventListener('touchstart', (e) => {
+    isMouseDown = true;
+    const touch = e.touches[0];
+    startPos = { x: touch.clientX, y: touch.clientY };
+    currentMouse = { x: touch.clientX, y: touch.clientY };
+    },
+    { passive: false });
+});
+
+// 터치 시작
+window.addEventListener('touchstart', (e) => {
+    isMouseDown = true;
+    const touch = e.touches[0];
+    startPos = { x: touch.clientX, y: touch.clientY };
+    currentMouse = { x: touch.clientX, y: touch.clientY };
+},
+{ passive: false });
+
+// 터치 이동
+window.addEventListener('touchmove', (e) => {
+    if (!isMouseDown) return;
+    const touch = e.touches[0];
+    currentMouse = { x: touch.clientX, y: touch.clientY };
+    e.preventDefault(); 
+},
+{ passive: false });
+
+// 터치 종료
+window.addEventListener('touchend', (e) => {
+    if (!isMouseDown || isCleared) return;
+    isMouseDown = false;
+    
+    const endPos = currentMouse; // touchmove에서 업데이트된 좌표 사용
+    const angle = Math.atan2(endPos.y - startPos.y, endPos.x - startPos.x);
+    const distance = Vector.magnitude(Vector.sub(endPos, startPos));
+    const force = Math.min(distance * 0.075, 50);
+    
+    if (distance < 15) return;
 
     for (let i = 0; i < 6; i++) {
         setTimeout(() => {
@@ -174,6 +248,8 @@ window.addEventListener('mouseup', (e) => {
         }, i * 40);
     }
 });
+
+
 
 // 시작!
 initGame();
