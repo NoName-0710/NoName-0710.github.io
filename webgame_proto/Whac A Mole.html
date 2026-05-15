@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>늑대 방어전</title>
+    <style>
+        body { margin: 0; background: #4e342e; font-family: sans-serif; overflow: hidden; text-align: center; touch-action: none; }
+        #ui { padding: 20px; color: #ffd54f; }
+        #score { font-size: 32px; font-weight: bold; }
+        
+        .game-field { display: flex; justify-content: center; align-items: center; height: 60vh; gap: 25px; }
+        
+        .fireplace {
+            position: relative; 
+            width: 110px; 
+            height: 130px; 
+            background: #1a0f0e;
+            
+            border: 12px solid #8d6e63; 
+            border-radius: 40px 40px 5px 5px;
+            outline: 4px solid #3e2723;
+            
+            overflow: hidden;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.9);
+        }
+
+        .wolf-butt {
+            position: absolute; 
+            width: 100%; 
+            height: 100px;
+            left: 0; 
+            top: -100px; 
+            transition: top 0.15s ease-out; 
+            cursor: pointer;
+            user-select: none;
+        
+            background-image: url('img/wolf_butt.png');
+            background-size: 150%; 
+            background-repeat: no-repeat;
+            
+            background-position: 60% top; 
+        }
+        
+        .wolf-butt.show { 
+            top: -5%; 
+        }
+
+        .wolf-butt.hit { filter: sepia(100%) saturate(1000%) hue-rotate(320deg);; transform: scale(1.1); animation: vibrate 0.2s linear infinite; }
+
+        #game-over {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 30px; border-radius: 20px; display: none; z-index: 100;
+        }
+
+        @keyframes vibrate {
+            0% { transform: translate(0); }
+            20% { transform: translate(-4px, 2px) rotate(-2deg); }
+            40% { transform: translate(4px, -2px) rotate(2deg); }
+            60% { transform: translate(-4px, -2px) rotate(0deg); }
+            80% { transform: translate(4px, 2px) rotate(2deg); }
+            100% { transform: translate(0); }
+        }
+        body {
+            margin: 0;
+            /* 벽돌 색감과 줄눈(백시멘트) 효과 */
+            background-color: #4e342e; 
+            background-image: 
+                linear-gradient(335deg, #5d4037 23px, transparent 23px),
+                linear-gradient(155deg, #5d4037 23px, transparent 23px),
+                linear-gradient(335deg, #5d4037 23px, transparent 23px),
+                linear-gradient(155deg, #5d4037 23px, transparent 23px);
+            background-size: 58px 58px;
+            background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px;
+            
+            font-family: sans-serif;
+            overflow: hidden;
+            text-align: center;
+            touch-action: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="score">SCORE: 0</div>
+    <div id="timer">30.00s</div>
+</div>
+
+<div class="game-field">
+    <div class="fireplace"><div class="wolf-butt" onclick="poke(this)"></div></div>
+    <div class="fireplace"><div class="wolf-butt" onclick="poke(this)"></div></div>
+    <div class="fireplace"><div class="wolf-butt" onclick="poke(this)"></div></div>
+</div>
+
+<div id="game-over">
+    <h2 style="margin:0">🔥방어 완료!🔥</h2>
+    <p id="final-score" style="font-size: 20px;"></p>
+    <button onclick="location.reload()" style="padding:10px 20px; cursor:pointer;">다시 하기</button>
+</div>
+
+<script>
+    let score = 0;
+    let timeLeft = 30.0;
+    let isPlaying = true;
+    const butts = document.querySelectorAll('.wolf-butt');
+
+    function gameLoop() {
+        if (!isPlaying) return;
+
+        const target = butts[Math.floor(Math.random() * butts.length)];
+        
+        // 이미 나와있는게 아닐 때만 실행
+        if (!target.classList.contains('show')) {
+            target.classList.add('show');
+            target.classList.remove('hit');
+
+            // 엉덩이가 머무는 시간 (갈수록 빨라짐)
+            const duration = Math.max(400, 1000 - (score * 3));
+
+            setTimeout(() => {
+                target.classList.remove('show');
+                if (isPlaying) setTimeout(gameLoop, Math.random() * 800 + 300);
+            }, duration);
+        } else {
+            // 선택된게 이미 나와있으면 즉시 다음 기회 탐색
+            setTimeout(gameLoop, 100);
+        }
+    }
+
+    function poke(el) {
+        if (!el.classList.contains('show') || el.classList.contains('hit')) return;
+
+        score += 10;
+        document.getElementById('score').innerText = `SCORE: ${score}`;
+        el.classList.add('hit');
+
+        // 아파서 0.1초만에 굴뚝으로 쏙 올라감
+        setTimeout(() => el.classList.remove('show'), 100);
+    }
+
+    // 메인 타이머
+    const mainTimer = setInterval(() => {
+        timeLeft -= 0.01;
+        if (timeLeft <= 0) {
+            timeLeft = 0;
+            isPlaying = false;
+            clearInterval(mainTimer);
+            document.getElementById('game-over').style.display = 'block';
+            document.getElementById('final-score').innerText = `내 점수: ${score}점`;
+        }
+        document.getElementById('timer').innerText = timeLeft.toFixed(2) + "s";
+    }, 10);
+
+    // 시작
+    gameLoop();
+</script>
+</body>
+</html>
